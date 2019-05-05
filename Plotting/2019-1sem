@@ -1,0 +1,953 @@
+rm(list = ls())
+options(scipen = 100)
+
+
+# Import Packages ---------------------------------------------------------
+if (!require(dplyr)) {install.packages("dplyr")}; require(dplyr)
+if (!require(ggplot2)) {install.packages("ggplot2")}; require(ggplot2)
+if (!require(ggalt)) {install.packages("ggalt")}; require(ggalt)
+if (!require(reshape2)) {install.packages("reshape2")}; require(reshape2)
+if (!require(RColorBrewer)) {install.packages("RColorBrewer")}; require(RColorBrewer)
+if (!require(viridis)) {install.packages("viridis")}; require(viridis)
+if (!require(ggthemes)) {install.packages("ggthemes")}; require(ggthemes)
+if (!require(scales)){install.packages("scales")};require(scales)
+
+# using data
+data("diamonds")
+head(diamonds)
+
+data("economics")
+head(economics)
+
+# ggplot2::diamonds
+# ggplot2::seals
+# ggplot2::economics_long
+# ggplot2::economics
+# ggplot2::faithfuld
+# ggplot2::midwest
+# ggplot2::mpg
+# ggplot2::presidential
+
+
+# Scatterplot -------------------------------------------------------------
+
+### "base"
+plot(diamonds$price ~ diamonds$carat, ylab = "Price", xlab = "Carat", main = "Base Scatterplot", col = "grey")
+# by cut
+plot(diamonds$price ~ diamonds$carat, ylab = "Price", xlab = "Carat", main = "Base Scatterplot", col = diamonds$cut)
+
+### "lattice" package
+lattice::xyplot(price ~ carat , 
+                data = diamonds,
+                main = "Lattice Scatterplot",
+                xlab = "Carat",
+                ylab = "Price",
+                col = "chocolate",
+                cex = 0.8)
+
+# by cut
+lattice::xyplot(price ~ carat , 
+                data = diamonds,
+                main = "Lattice Scatterplot",
+                xlab = "Carat",
+                ylab = "Price",
+                col = diamonds$cut,
+                cex = 0.8)
+
+# multiple scatterplot by cut
+lattice::xyplot(price ~ carat | cut , 
+                data = diamonds,
+                main = "Lattice Scatterplot",
+                xlab = "Carat",
+                ylab = "Price",
+                col = "chocolate",
+                cex = 0.8)
+
+### "ggplot2" package
+ggplot(diamonds) +
+  geom_point(aes(x = carat, y = price), col = "grey50") + 
+  xlab("Carat") + 
+  ylab("Price") + 
+  ggtitle("ggplot2 Scatterplot") +
+  theme_bw()
+
+# by cut
+ggplot(diamonds) +
+  geom_point(aes(x = carat, y = price, colour = cut)) + 
+  xlab("Carat") + 
+  ylab("Price") + 
+  ggtitle("ggplot2 Scatterplot") + 
+  theme(axis.title = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12)) +
+  theme_bw()
+
+# add subtitle
+ggplot(diamonds) +
+  geom_point(aes(x = carat, y = price, colour = cut)) + 
+  labs(title = "ggplot2 Scatterplot",
+       subtitle = "Carat vs Price",
+       x = "Carat",
+       y = "Price") +
+  theme(axis.title = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12)) + 
+  theme_bw()
+
+
+
+# Connected Scatterplot ---------------------------------------------------
+
+ggplot(economics) +
+  geom_line(aes(x = date, y = uempmed)) + 
+  geom_point(aes(x = date, y = uempmed), size = 1) +
+  labs(title = "Connected Scatterplot",
+       x = "Year",
+       y = "Unemployment") +
+  theme_bw()
+
+ggplot(economics) +
+  geom_line(aes(x = date, y = uempmed)) + 
+  geom_point(aes(x = date, y = uempmed), size = 1) +
+  scale_x_date(date_labels = "%b-%Y", date_breaks = "1 month") + 
+  labs(title = "Connected Scatterplot",
+       x = "Month-Year",
+       y = "Unemployment") +
+  theme_bw()
+  
+
+
+
+# Line + Column -----------------------------------------------------------
+
+# n by cut & clarity 
+temp <- diamonds %>% group_by(cut, clarity) %>% summarise(n = n())
+
+ggplot(temp) + 
+  geom_bar(aes(x = factor(cut), y = n, fill = clarity), stat = "identity", position = "dodge") + 
+  stat_summary(fun.y = mean, geom = "line", mapping = aes(x = factor(cut), y = n, group = 1), colour = "red") +
+  scale_fill_brewer(palette = 6) +
+  labs(x = "Cut",
+       y = "N")
+
+
+
+# Bubble ------------------------------------------------------------------
+
+# subset color = "E" & clarity = "SI1"
+temp <- diamonds %>% filter(color == "E", clarity == "SI1")
+ggplot(temp, aes(x = carat, y = price, size = depth, colour = carat)) +
+  geom_point(alpha = 0.4) +
+  labs(x = "Carat",
+       y = "Price",
+       size = "Depth in %") +
+  scale_size_continuous(trans = "exp", range = c(1, 25)) +
+  scale_colour_continuous(guide = FALSE) + 
+  theme_bw() +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.position = c(0.95, 0.05),
+        legend.justification = c("right", "bottom"),
+        panel.border = element_blank())
+
+
+
+# Heatmap -----------------------------------------------------------------
+
+data <- read.csv("F:/낙현/Data/measles_lev1.csv", header = T, stringsAsFactors = F, skip = 2)
+
+#convert data to long format
+data2 <- melt(data, id.vars = c("YEAR", "WEEK"))
+#rename column names
+colnames(data2) <- c("Year", "Week", "State", "Value")
+
+data2$State <- stringr::str_replace_all(data2$State, pattern = "\\.", replacement = " ")
+data2$Value[data2$Value == "-"] <- NA
+str(data2)
+
+data2$Year <- factor(data2$Year)
+data2$Week <- factor(data2$Week)
+data2$Value <- as.numeric(data2$Value)
+
+naSum <- function(x) {
+  if(all(is.na(x))) val <- sum(x,na.rm=F)
+  if(!all(is.na(x))) val <- sum(x,na.rm=T)
+  return(val)
+}
+
+# final data
+data3 <- data2 %>% group_by(Year, State) %>% summarise(Incidence = round(naSum(Value)))
+
+# plotting using "ggplot2"
+ggplot(data3) +
+  geom_tile(aes(x = Year, y = State, fill = Incidence), colour = "white", size = 0.25) + 
+  labs(title = "Heatmap Plot",
+       x = "Year",
+       y = "State") +
+  scale_y_discrete(expand = c(0, 0)) + 
+  scale_x_discrete(expand = c(0, 0), breaks = c("1930","1940","1950","1960","1970","1980","1990","2000")) +
+  coord_fixed() +
+  theme_grey(base_size = 8) +
+  theme(axis.text = element_text(face = "bold"),
+        axis.ticks = element_line(size = 0.4),
+        plot.background = element_blank(),
+        panel.border = element_blank())
+
+#reverse level order of state
+data3$State <- factor(data3$State)
+levels(data3$State) <- rev(levels(data3$State))
+
+#create a new variable from incidence
+data3$IncidenceFactor <- cut(data3$Incidence,
+                             breaks = c(-1, 0, 1, 10, 100, 500, 1000, max(data3$Incidence, na.rm = T)),
+                             labels = c("0","0-1","1-10","10-100","100-500","500-1000",">1000"))
+#change level order
+levels(data3$IncidenceFactor) <- rev(levels(data3$IncidenceFactor))
+
+# modified plot
+ggplot(data3) +
+  geom_tile(aes(x = Year, y = State, fill = IncidenceFactor), colour = "white", size = 0.25) + 
+  labs(title = "Incidence of Measles in the US",
+       x = "Year",
+       y = "State") +
+  scale_y_discrete(expand = c(0, 0)) + 
+  scale_x_discrete(expand = c(0, 0), breaks = c("1930","1940","1950","1960","1970","1980","1990","2000")) +
+  scale_fill_manual(values = rev(RColorBrewer::brewer.pal(7, "YlGnBu")), na.value = "grey90") +
+  geom_vline(aes(xintercept = 36),size = 3.4, alpha = 0.24) +
+  coord_fixed() +
+  theme_grey(base_size = 8) +
+  theme(legend.title = element_blank(),
+        #legend.margin = grid::unit(0, "cm"),
+        legend.text = element_text(colour = "grey40", size = 7,face = "bold"),
+        legend.key.height = grid::unit(0.8, "cm"),
+        legend.key.width = grid::unit(0.2, "cm"),
+        axis.text.x = element_text(size = 10, colour = "grey40"),
+        axis.text.y = element_text(vjust = 0.2, colour = "grey40"),
+        axis.ticks = element_line(size = 0.4),
+        plot.title = element_text(colour = "grey40", hjust = 0, size = 14, face = "bold"),
+        plot.background = element_blank(),
+        panel.border = element_blank())
+
+
+
+# column ------------------------------------------------------------------
+
+ggplot(diamonds) + 
+  geom_bar(aes(x = cut, y = price), colour = "grey50", stat = "identity", width = .5) + 
+  labs(title = "Column", 
+       subtitle = "Cut vs Price", 
+       x = "Cut",
+       y = "Price",
+       caption = "Column plot") + 
+  theme_bw()
+
+
+
+# bar plot ----------------------------------------------------------------
+
+ggplot(diamonds) + 
+  geom_bar(aes(x = cut, y = price), stat = "identity", width = .5) + 
+  labs(title = "Bar", 
+       subtitle = "Cut vs Price", 
+       x = "Cut",
+       y = "Price",
+       caption = "Bar plot") +
+  coord_flip() + 
+  theme_bw()
+
+
+
+# paired column -----------------------------------------------------------
+
+ggplot(diamonds)+
+  geom_bar(aes(x = cut, y = price, fill = clarity), stat = 'identity', width = 0.5, position = 'dodge') + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "Paired Column", 
+       subtitle = "Cut vs Price", 
+       x = "Cut",
+       y = "Price") +
+  theme_bw()
+
+
+
+# proportional stacked bar ------------------------------------------------
+
+temp <- diamonds
+# make variable cut2
+temp$cut2 <- ifelse(temp$cut == "Good" | temp$cut == "Very Good", "Good",
+                    ifelse(temp$cut == "Premium" | temp$cut == "Ideal", "Premium", "Fair"))
+
+ggplot(temp) +
+  geom_bar(aes(x = clarity, y = price, fill = cut2), stat = 'identity', width = 0.5, position = 'fill') +
+  scale_fill_manual(values = c("deeppink4", "#6b6b6b", "deepskyblue4")) +
+  labs(title = "Proportional Stacked Bar",
+       x = "Clarity",
+       y = "Price") +
+  coord_flip() +
+  theme_bw()
+
+
+
+# lollipop chart ----------------------------------------------------------
+
+temp <- diamonds %>% group_by(cut) %>% summarise(mean = mean(price))
+
+ggplot(temp) + 
+  geom_point(aes(x = cut, y = mean), size = 3) + 
+  geom_segment(aes(x = cut, 
+                   xend = cut, 
+                   y = 0, 
+                   yend = mean)) + 
+  labs(title = "Lollipop Chart", 
+       subtitle = "cut Vs aveage price",
+       x = "Cut",
+       y = 'Average Price') + 
+  coord_flip() + 
+  theme_bw()
+
+
+
+# pie chart ---------------------------------------------------------------
+
+#pie chart
+ggplot(browsers)+
+  geom_rect(aes(xmin=3,xmax=4,ymin=ymin,ymax=ymax,fill=browser))+
+  coord_polar('y')+   
+  theme(axis.line = element_blank(), 
+        plot.title = element_text(hjust = 0.5),
+        panel.background = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks  = element_blank(), 
+        axis.text.y = element_blank())+
+  labs(fill = 'browser', x = NULL, y = NULL, title = 'Pie Chart of browser')
+
+temp <- diamonds %>% 
+  group_by(cut) %>% 
+  summarise(n = n(),
+            prop = round((n / nrow(diamonds)) * 100, 2)) %>% 
+  mutate(lab.ypos = round(cumsum(prop) - 0.5*prop, 2))
+
+ggplot(temp) + 
+  geom_bar(aes(x = "", y = prop, fill = cut), width = 1, stat = "identity", colour = "white") +
+  coord_polar(theta = "y", start = 0) + 
+  scale_fill_brewer(palette = "Set3") + 
+  geom_text(aes(x = "", y = lab.ypos, label = prop), colour = "white") + 
+  labs(title = "Pie Chart") +
+  theme_void()
+
+
+
+# donut chart -------------------------------------------------------------
+
+ggplot(temp) + 
+  geom_bar(aes(x = 2, y = prop, fill = cut), stat = "identity", colour = "white") +
+  coord_polar(theta = "y", start = 0) + 
+  scale_fill_brewer(palette = "Set3") + 
+  geom_text(aes(x = 2, y = lab.ypos, label = prop), colour = "white") + 
+  xlim(0.5, 2.5) + 
+  labs(title = "Donut Chart") +
+  theme_void()
+
+
+
+# treemap -----------------------------------------------------------------
+
+if (!require(treemapify)) {install.packages("treemapify")}; require(treemapify)
+
+data(G20)
+
+ggplot(G20) +
+  geom_treemap(aes(area = gdp_mil_usd, fill = hdi)) +
+  geom_treemap_text(aes(area = gdp_mil_usd, fill = hdi, label = country), fontface = "bold", colour = "white", place = "centre", grow = FALSE)
+
+ggplot(G20, aes(area = 1, label = country, subgroup = hemisphere,
+                subgroup2 = region, subgroup3 = econ_classification)) +
+  geom_treemap() +
+  geom_treemap_subgroup3_border(colour = "blue", size = 1) +
+  geom_treemap_subgroup2_border(colour = "white", size = 3) +
+  geom_treemap_subgroup_border(colour = "red", size = 5) +
+  geom_treemap_subgroup_text(
+    place = "middle",
+    colour = "red",
+    alpha = 0.5,
+    grow = T) +
+  geom_treemap_subgroup2_text(
+    colour = "white",
+    alpha = 0.5,
+    fontface = "italic") +
+  geom_treemap_subgroup3_text(place = "top", colour = "blue", alpha = 0.5) +
+  geom_treemap_text(colour = "white", place = "middle", reflow = T)
+
+
+
+# voronoi -----------------------------------------------------------------
+
+if (!require(ggvoronoi)) {install.packages("ggvoronoi")}; require(ggvoronoi)
+
+set.seed(45056)
+x <- sample(1:200, 100)
+y <- sample(1:200, 100)
+points <- data.frame(x, 
+                     y, 
+                     distance = sqrt((x - 100)^2 + (y - 100)^2))
+circle <- data.frame(x = 100*(1 + cos(seq(0, 2*pi, length.out = 2500))),
+                     y = 100*(1 + sin(seq(0, 2*pi, length.out = 2500))),
+                     group = rep(1, 2500))
+
+ggplot(points) +
+  geom_point(aes(x, y, color = distance)) +
+  geom_path(data = circle, aes(x, y, group = group))
+
+ggplot(points) +
+  geom_voronoi(aes(x, y, fill = distance))
+
+ggplot(points, aes(x, y)) +
+  stat_voronoi(geom = "path") +
+  geom_point()
+
+ggplot(data = points, aes(x = x, y = y, fill = distance)) + 
+  geom_voronoi(outline = circle) +
+  theme_bw()
+
+ggplot(points, aes(x, y)) +
+  geom_voronoi(aes(fill = distance), outline = circle,
+               color = "#4dffb8", size = 0.125) +
+  scale_fill_gradient(low = "#4dffb8", high = "black", guide = F) +
+  theme_void() +
+  coord_fixed()
+
+
+
+# sunburst ----------------------------------------------------------------
+
+if (!require(sunburstR)) {install.packages("sunburstR")}; require(sunburstR)
+if (!require(tidyverse)) {install.packages("tidyverse")}; require(tidyverse)
+if (!require(viridis)) {install.packages("viridis")}; require(viridis)
+
+
+# Create dataset
+data <- data.frame(individual = paste("Mister", seq(1, 60), sep = " "),
+                   group = c(rep("A", 10), rep("B", 30), rep("C", 14), rep("D", 6)),
+                   value1 = sample(seq(10, 100), 60, replace = T),
+                   value2 = sample(seq(10, 100), 60, replace = T),
+                   value3 = sample(seq(10, 100), 60, replace = T))
+
+# Transform data in a tidy format (long format)
+data <- data %>% gather(key = "observation", value = "value", -c(1, 2)) 
+
+# Set a number of 'empty bar' to add at the end of each group
+empty_bar <- 2
+nObsType <- nlevels(as.factor(data$observation))
+to_add <- data.frame(matrix(NA, empty_bar*nlevels(data$group)*nObsType, ncol(data)))
+colnames(to_add) <- colnames(data)
+to_add$group <- rep(levels(data$group), each = empty_bar*nObsType )
+data <- rbind(data, to_add)
+data <- data %>% arrange(group, individual)
+data$id <- rep(seq(1, nrow(data)/nObsType) ,each = nObsType)
+
+# Get the name and the y position of each label
+label_data <- data %>% group_by(id, individual) %>% summarize(tot = sum(value))
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360*(label_data$id - 0.5)/number_of_bar     
+label_data$hjust <- ifelse(angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+# prepare a data frame for base lines
+base_data <- data %>% 
+  group_by(group) %>% 
+  summarize(start = min(id), end = max(id)-empty_bar) %>% 
+  rowwise() %>% 
+  mutate(title = mean(c(start, end)))
+
+# prepare a data frame for grid (scales)
+grid_data <- base_data
+grid_data$end <- grid_data$end[c(nrow(grid_data), 1:nrow(grid_data) - 1)] + 1
+grid_data$start <- grid_data$start - 1
+grid_data <- grid_data[-1, ]
+
+# Make the plot
+ggplot(data) +      
+  # Add the stacked bar
+  geom_bar(aes(x = as.factor(id), y = value, fill = observation), stat = "identity", alpha = 0.5) +
+  scale_fill_viridis(discrete = TRUE) +
+  
+  # Add a val=100/75/50/25 lines. I do it at the beginning to make sur barplots are OVER it.
+  geom_segment(data = grid_data, aes(x = end, y = 0, xend = start, yend = 0), colour = "grey", alpha = 1, size = 0.3, inherit.aes = FALSE) +
+  geom_segment(data = grid_data, aes(x = end, y = 50, xend = start, yend = 50), colour = "grey", alpha = 1, size = 0.3, inherit.aes = FALSE) +
+  geom_segment(data = grid_data, aes(x = end, y = 100, xend = start, yend = 100), colour = "grey", alpha = 1, size = 0.3, inherit.aes = FALSE) +
+  geom_segment(data = grid_data, aes(x = end, y = 150, xend = start, yend = 150), colour = "grey", alpha = 1, size = 0.3, inherit.aes = FALSE) +
+  geom_segment(data = grid_data, aes(x = end, y = 200, xend = start, yend = 200), colour = "grey", alpha = 1, size = 0.3, inherit.aes = FALSE) +
+  
+  # Add text showing the value of each 100/75/50/25 lines
+  annotate("text", x = rep(max(data$id), 5), y = c(0, 50, 100, 150, 200), label = c("0", "50", "100", "150", "200") , color = "grey", size = 6 , angle = 0, fontface = "bold", hjust = 1) +
+  
+  ylim(-150, max(label_data$tot, na.rm = T)) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(rep(-1,4), "cm")) +
+  coord_polar() +
+  
+  # Add labels on top of each bar
+  geom_text(data = label_data, aes(x = id, y = tot + 10, label = individual, hjust = hjust), color = "black", fontface = "bold",alpha = 0.6, size = 5, angle =  label_data$angle, inherit.aes = FALSE) +
+  
+  # Add base line information
+  geom_segment(data = base_data, aes(x = start, y = -5, xend = end, yend = -5), colour = "black", alpha = 0.8, size = 0.6 , inherit.aes = FALSE )  +
+  geom_text(data = base_data, aes(x = title, y = -18, label = group), hjust = c(1, 1, 0, 0), colour = "black", alpha = 0.8, size = 4, fontface = "bold", inherit.aes = FALSE)
+
+
+
+# waffle ------------------------------------------------------------------
+
+if (!require("waffle")) {install.packages("waffle")}; require(waffle)
+
+assemblyman <- c("새누리당" = 122, "더불어민주당" = 123, "국민의당" = 38, "정의당" = 6, "무소속" = 11)
+
+waffle(assemblyman, title = '20대 정당별 국회의원 당선자 현황') + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+# vennDiagram -------------------------------------------------------------
+
+if (!require("VennDiagram")) {install.packages("VennDiagram")}; require(VennDiagram)
+
+draw.triple.venn(area1 = 3472, area2 = 3528, area3 = 3492, n12 = 3176, n23 = 3323, n13 = 3182, n123 = 3096, 
+                 category = c("sample1", "sample2", "sample3"), 
+                 lty = "blank", 
+                 fill = c("skyblue", "pink1", "mediumorchid") , 
+                 cex=2, cat.cex = 2, cat.fontfamily = rep("serif", 3))
+
+
+# waferfalls --------------------------------------------------------------
+
+if (!require("waterfalls")) {install.packages("waterfalls")}; require(waterfalls)
+
+income <- data.frame(category = c("Sales", "Services", "Fixed Costs", "Variable Costs", "Taxes"), 
+                     amount = c(101000, 52000, -23000, -15000, -10000)) 
+
+waterfall(income,
+          calc_total = T,
+          total_axis_text = 'total',
+          total_rect_text_color = 'black',
+          total_rect_color = 'goldenrod1')+
+  scale_y_continuous(label = dollar) +
+  labs(title = 'Waterfall plot') +
+  theme_minimal()
+
+
+
+# Ranking chart -------------------------------------------------------
+
+temp <- diamonds %>% group_by(clarity) %>% summarise(avg_price = mean(price))
+
+ggplot(temp) + 
+  geom_bar(aes(x = clarity, y = avg_price), stat = "identity")
+
+# Ordered column
+ggplot(temp) + 
+  geom_bar(aes(x = reorder(clarity, -temp$avg_price), y = avg_price), stat = "identity") +
+  labs(title = "Oredered Column",
+       x = "Clarity",
+       y = "Average Price") +
+  theme_bw()
+
+# Ordered bar
+ggplot(temp) + 
+  geom_bar(aes(x = reorder(clarity, temp$avg_price), y = avg_price), stat = "identity") +
+  labs(title = "Oredered Bar",
+       x = "Clarity",
+       y = "Average Price") +
+  coord_flip() +
+  theme_bw()
+
+# Ordered proportional symbol
+ggplot(temp) + 
+  geom_point(aes(x = reorder(clarity, -temp$avg_price), y = avg_price), size = (temp$avg_price/500)) +
+  labs(title = "Ordered Proportional Symbol",
+       x = "Clarity",
+       y = "Average Price") +
+  theme_bw()
+  
+# Dot strip plot
+ggplot(diamonds) + 
+  geom_point(aes(x = price, y  = cut), size = 0.2, position = "jitter", alpha = 0.2) +
+  labs(title = "Dot Strip Plot",
+       x = "Price",
+       y = "Cut") +
+  theme_bw()
+
+
+
+# Slope plot --------------------------------------------------------------
+
+names(economics)
+ggplot(economics, aes(x = date, y = unemploy)) + 
+  geom_line() + 
+  geom_point() +
+  theme_bw()
+
+
+
+# Flow chart --------------------------------------------------------------
+
+if (!require(ggalluvial)) {install.packages("ggalluvial")}; require(ggalluvial)
+
+# Sankey chart
+titanic <- data.frame(Titanic)
+
+ggplot(data = titanic, aes(axis1 = Class, axis2 = Sex, axis3 = Age, y = Freq)) +
+  scale_x_discrete(limits = c("Class", "Sex", "Age"), expand = c(.1, .05)) +
+  xlab("Demographic") +
+  geom_alluvium(aes(fill = Survived))
+
+ggplot(data = titanic, aes(axis1 = Class, axis2 = Sex, axis3 = Age, y = Freq)) +
+  scale_x_discrete(limits = c("Class", "Sex", "Age"), expand = c(.1, .05)) +
+  xlab("Demographic") +
+  geom_alluvium(aes(fill = Survived)) +
+  geom_stratum() + geom_text(stat = "stratum", label.strata = TRUE)
+
+
+# Chord chart
+if (!require(circlize)) {install.packages("circlize")}; require(circlize)
+
+name <- sample(letters, 20, replace = T)
+feature <- paste("feature ", rep(1:5, 4) , sep="")
+dat <- data.frame(name,feature)
+dat <- with(dat, table(name, feature))
+
+chordDiagram(as.data.frame(dat), transparency = 0.5)
+
+
+
+# histogram ---------------------------------------------------------------
+
+ggplot(diamonds) +
+  geom_histogram(aes(x = price), binwidth = 100, colour = "blue", fill = "deepskyblue4") +
+  labs(title = "Histogram",
+       x = "Price") +
+  theme_bw()
+
+
+
+# box plot ----------------------------------------------------------------
+
+ggplot(diamonds) + 
+  geom_point(aes(x = cut, y = price), colour = "deeppink4", position = "jitter") +
+  geom_boxplot(aes(x = cut, y = price), colour = "black") +
+  labs(title = "Box plot",
+       x = "Cut",
+       y = "Price") +
+  theme_bw()
+
+
+
+# violin plot -------------------------------------------------------------
+
+ggplot(diamonds) + 
+  geom_point(aes(x = cut, y = price), colour = "deeppink4", position = "jitter") +
+  geom_violin(aes(x = cut, y = price), colour = "black") +
+  labs(title = "Box plot",
+       x = "Cut",
+       y = "Price") +
+  theme_bw()
+
+
+if (!require(bannerCommenter)) {install.packages("bannerCommenter")}; require(bannerCommenter)
+if (!require(VIM)) {install.packages("VIM")}; require(VIM)
+
+
+
+# population pyramid ------------------------------------------------------
+
+pop <- data.frame(Idade = c("00 a 04", "05 a 09", "10 a 14", "15 a 19", "20 a 24", "25 a 29", 
+                            "30 a 34", "35 a 39", "40 a 44", "45 a 49", "50 a 54", "55 a 59", 
+                            "60 a 64", "65 a 69", "70 a 74", "75 a 79", "80 a 84", "85 a 89", 
+                            "90 a 94", "95 a 99", "Mais de 100"),
+                  Homens   = c(3406, 3630, 4431, 4531, 4957, 5323, 4718, 4303, 4201, 4297, 3816, 
+                               3081, 2252, 1502, 1114, 734,  422, 165, 52,  5,  3),
+                  Mulheres = c(3126, 3610, 4374, 4537, 4998, 5486, 4748, 4404, 4640, 4522, 4170, 
+                               3506, 2690, 2080, 1630, 1332, 896, 462, 177, 38, 5))
+
+ggplot(pop) +                                                                   
+  geom_bar(aes(x = Idade, y = Homens), fill = "#59ABE3", stat = "identity") +      
+  geom_bar(aes(x = Idade, y = -Mulheres), fill = "#E66551", stat = "identity") +     
+  coord_flip() +                                                                
+  theme_bw() +                                                                  
+  ylab("Quantidade") +                                                        
+  scale_y_continuous(labels=abs, breaks=c(-3000, 0, 3000)) 
+
+
+
+# dot plot ----------------------------------------------------------------
+
+presidential
+temp <- melt(presidential, id.vars = c("name", "party"))
+
+ggplot(temp) +
+  geom_line(aes(x = value, name), size = 1) +
+  geom_point(aes(x = value, name), size = 3) + 
+  labs(title = "dot plot",
+       x = "Date",
+       y = "Name") +
+  theme_bw()
+
+
+
+# barcode plot ------------------------------------------------------------
+
+ggMMplot <- function(var1, var2){
+  require(ggplot2)
+  levVar1 <- length(levels(var1))
+  levVar2 <- length(levels(var2))
+  
+  jointTable <- prop.table(table(var1, var2))
+  plotData <- as.data.frame(jointTable)
+  plotData$marginVar1 <- prop.table(table(var1))
+  plotData$var2Height <- plotData$Freq / plotData$marginVar1
+  plotData$var1Center <- c(0, cumsum(plotData$marginVar1)[1:levVar1 - 1]) +
+    plotData$marginVar1 / 2
+  
+  ggplot(plotData, aes(var1Center, var2Height)) +
+    geom_bar(stat = "identity", aes(width = marginVar1, fill = var2), col = "Black") +
+    geom_text(aes(label = as.character(var1), x = var1Center, y = 1.05)) +
+    theme_bw()
+}
+
+ggMMplot(diamonds$cut, diamonds$clarity)
+
+
+
+# cumulative curve plot ---------------------------------------------------
+
+temp <- diamonds %>% group_by(cut) %>% summarise(n = n(),
+                                                 prop = round((n / nrow(diamonds)) * 100, 2))
+temp$cumprop <- cumsum(temp$prop)
+
+ggplot(temp) +
+  geom_line(aes(x = cut, y = cumprop, group = 1)) +
+  geom_point(aes(x = cut, y = cumprop), size = 2) +
+  labs(title = "Cumulative Curve Plot",
+       x = "Cut",
+       y = "Cumulative Probability") +
+  theme_bw()
+
+
+
+# diverging bar plot ------------------------------------------------------
+
+if (!require(ggfittext)) {install.packages("ggfittext")}; require(ggfittext)
+
+data("mtcars")
+mtcars$car <- rownames(mtcars) 
+mtcars$mpg_z <- round((mtcars$mpg - mean(mtcars$mpg)) / sd(mtcars$mpg), 2)
+mtcars$mpg_type <- ifelse(mtcars$mpg_z < 0, "below", "above") 
+mtcars <- mtcars[order(mtcars$mpg_z), ]
+mtcars$car <- factor(mtcars$car, levels = mtcars$car)
+
+ggplot(mtcars, aes(x = car, y = mpg_z, fill = mpg_type)) + 
+  geom_col(width = .5)  +
+  geom_fit_text(data = subset(mtcars, mpg_z > 0),
+                aes(x = car, ymin = 0, ymax = mpg_z, label = car),
+                height = grid::unit(2, "mm"),
+                min.size = 0,
+                inherit.aes = FALSE,
+                place = "right") +
+  geom_fit_text(data = subset(mtcars, mpg_z < 0),
+                aes(x = car, ymin = mpg_z, ymax = 0, label = car),
+                height = grid::unit(2, "mm"),
+                min.size = 0,
+                inherit.aes = FALSE,
+                place = "left") +
+  scale_fill_manual(name = "Mileage", values = c("#00ba38", "#f8766d")) + 
+  labs(subtitle = "Normalised mileage from 'mtcars'", 
+       title = "Diverging Bars") + 
+  coord_flip() +
+  theme_bw()
+
+
+
+# diverging stacked bar plot ----------------------------------------------
+
+if (!require(likert)) {install.packages("likert")}; require(likert)
+q1 <- likert(data.frame(factor(surveydat$q1)), grouping = factor(surveydat$race, labels = c('White','yellow', 'black')))
+plot(q1)
+
+
+
+# Surplus/Deficit Filled Line ---------------------------------------------
+
+data("economics")
+
+# Compute % Returns
+economics$returns_perc <- c(0, diff(economics$psavert)/economics$psavert[-length(economics$psavert)])
+
+# Create break points and labels for axis ticks
+brks <- economics$date[seq(1, length(economics$date), 12)]
+lbls <- lubridate::year(economics$date[seq(1, length(economics$date), 12)])
+
+ggplot(economics[1:100, ], aes(date, returns_perc)) + 
+  geom_area() + 
+  scale_x_date(breaks = brks, labels = lbls) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title = "Surplus/deficit filled line", 
+       subtitle = "Perc Returns for Personal Savings", 
+       y = "% Returns for Personal savings", 
+       caption = "Data Source: economics")
+
+
+
+# Circle timelin graph mass shootings in the US data------------------------------------
+auto.arima()
+economics %>%
+  ggplot(aes(x = date, y = psavert)) +
+  geom_point(aes(size = pop),shape = 21,colour = "#FF6F00") + # Should be the orange transparant circles 
+  geom_point(aes(size = uempmed),alpha = 0.7,colour = "#B71C1C") + # The red bubbles
+  labs( x = "Time", y = "Psavert", size = "POP")
+
+# seismogram
+data2<- ts(economics$psavert)
+forecast::auto.arima(data2)
+Fit <- arima(data2, c(3, 1, 0), 
+             seasonal = list(order = c(0, 1, 1), period = 12))
+plot(Fit$residuals)
+res <- Fit$residuals %>% data.frame() 
+res$time <- economics$date
+names(res) <- c("residuals","time")
+
+ggplot(res, aes(x = time, y = residuals, group = 1)) + 
+  geom_line() +
+  coord_flip()
+
+
+
+#  Line, Column, Line+Column ----------------------------------------------
+
+# 범주의 범위가크면 알아보기 힘들어짐.
+ggplot(economics , aes(x = date, y = psavert , group = 1)) + 
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3, size = 7)) +
+  labs(x = "Time", 
+       y = "Psavert")
+
+ggplot(economics , aes(x = date, y = psavert , group = 1)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3, size = 7)) +
+  labs(x = "Time", 
+       y = "Psavert")
+
+ggplot(economics , aes(x = date, y = psavert , group=1)) +
+  geom_bar(stat = "identity") + 
+  geom_line(aes(colour = "red")) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3, size = 7)) +
+  labs(x = "Time", 
+       y = "Psavert", 
+       colour = "Psavert")
+
+
+
+# stock price -------------------------------------------------------------
+
+if (!require("quantmod")) {install.packages("quantmod"); require(quantmod)}
+if (!require("forecast")) {install.packages("forecast"); require(forecast)}
+if (!require("fma")) {install.packages("fma"); require(fma)}
+if (!require("plotly")) {install.packages("plotly"); require(plotly)}
+install.packages('tidyquant', repos = "http://cran.us.r-project.org")
+library(tidyquant)
+
+
+amznStock <- as.data.frame(tidyquant::tq_get(c("AMZN"), get = "stock.prices")) # get data using tidyquant 
+amznStock <- amznStock[year(amznStock$date) > 2012, ] # Using data only after 2012Using ggplot2
+
+amznStock$weekday <- as.POSIXlt(amznStock$date)$wday #finding the day no. of the week
+
+amznStock$weekdayf <- factor(amznStock$weekday, 
+                             levels = rev(1:7),
+                             labels = rev(c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")),
+                             ordered = TRUE) #converting the day no. to factor 
+
+amznStock$monthf <- factor(month(amznStock$date),
+                           levels = as.character(1:12),
+                           labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+                           ordered = TRUE) # finding the month 
+
+amznStock$yearmonth <- factor(as.yearmon(amznStock$date)) #finding the year and the month from the date. Eg: Nov 2018 
+
+amznStock$week <- as.numeric(format(amznStock$date,"%W")) #finding the week of the year for each date 
+
+amznStock <- plyr::ddply(amznStock, "yearmonth", transform, monthweek = 1 + week - min(week)) #normalizing the week to start at 1 for every month 
+
+stock <- amznStock[,c(2:7)]
+stock <- xts(stock, order.by = amznStock$date)
+plot(stock, main = "Amazon")
+candleChart(stock[c(1:50),], up.col = "black", dn.col = "red", theme = "white", name = "Candle Chart")
+# 주식 가격처럼 하루의 시작 마감, 최고, 최저 가격을 한눈에 보고 싶을 때 유용한 그래프
+
+
+
+# calender heatmap --------------------------------------------------------
+
+ggplot(amznStock, aes(monthweek, weekdayf, fill = amznStock$adjusted)) + 
+  geom_tile(colour = "white") + 
+  facet_grid(year(amznStock$date) ~ monthf) + 
+  scale_fill_gradient(low = "red", high = "green") + 
+  xlab("Week of Month") + 
+  ylab("") + 
+  ggtitle("Time-Series Calendar Heatmap: AMZN Stock Prices") + 
+  labs(fill = "Price") 
+
+
+
+# area chart --------------------------------------------------------------
+
+Sector <- rep(c("S01", "S02", "S03", "S04", "S05", "S06", "S07"), times = 7)
+Year <- as.numeric(rep(c("1950", "1960", "1970", "1980", "1990", "2000", "2010"), each = 7))
+Value <- runif(49, 10, 100)
+Area <- data.frame(Sector, Year, Value)
+ggplot(Area, aes(x = Year, y = Value, fill = Sector)) + 
+  geom_area() +
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw()
+
+Area$Sector <- factor(Area$Sector , levels = levels(Area$Sector)[c(1, 3, 4, 2, 6, 5, 7)])
+ggplot(Area, aes(x=Year, y=Value, fill=Sector)) + 
+  geom_area() +  
+  scale_fill_brewer(palette = "Set2") +
+  theme_bw()
+
+
+
+# fan chart #  forecast graph ---------------------------------------------
+
+fit <- ets(data$psavert)
+plot(forecast(fit), include = 120)
+plot(forecast(fit, level = c(50, 95)), include = 120) # levels의 경우 Confidence interval의 구간 조정을 나타냄.
+# include의 경우 기간의 조절을 할 수 있음.
+plot(forecast(fit,fan = TRUE), include = 60)
+
+
+
+# slope -------------------------------------------------------------------
+
+ggplot(data[c(1,574),])+
+  geom_line(aes(x = date, y = psavert , group = 1)) +
+  geom_point(aes(x = date, y = psavert , group = 1))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3, size = 7))+
+  labs(x = "Time", 
+       y = "Psavert")
+
+
+# connected plot ----------------------------------------------------------
+
+ggplot(data[c(1:50),],aes(x = date, y = psavert, group = 1)) + 
+  geom_point(size = 0.5) +
+  geom_segment(color = "#69b3a2", aes(xend = c(tail(data$date[c(1:50)], n = -1), NA),
+                                     yend = c(tail(data$psavert[c(1:50)], n = -1), NA)), 
+               arrow = arrow(length = unit(0.3, "cm"))) +
+  geom_point(aes(x = date, y = psavert), data = data[1:50,], size = 1) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3, size = 7)) +
+  labs(x = "Time", 
+       y = "Psavert", 
+       color = "blue")
+
